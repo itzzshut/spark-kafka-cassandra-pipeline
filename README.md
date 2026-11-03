@@ -99,10 +99,10 @@ You can use cqlsh to execute your SQL batch scripts on the data loaded into Cass
 
 ## Maintainer
 
-This project is maintained by Mariam Malik, a Software Engineer and Full-Stack Developer with over one year of professional experience.
+This project is maintained by Mariam Malik.
 
 - GitHub: [itzzshut](https://github.com/itzzshut)
 - LinkedIn: [Mariam Malik](https://www.linkedin.com/in/mariam-malik-308698259/)
 - Email: [mariammalik5100@gmail.com](mailto:mariammalik5100@gmail.com)
 
-Based on an open-source template by [Mouhamed-Jinja](https://github.com/Mouhamed-Jinja); extended and fixed by Mariam Malik.
+
