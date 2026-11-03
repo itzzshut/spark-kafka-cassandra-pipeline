@@ -2,7 +2,16 @@
 
 This project presents a comprehensive data streaming pipeline, integrating Python, Kafka, Spark Streaming, Docker, and Airflow. It enables streaming data from an API to Kafka, and subsequently to Cassandra using Spark Streaming. This project is designed to process, transmit, and analyze real-time data efficiently and at scale.
 
-<img width="764" alt="arch1" src="https://github.com/Mouhamed-Jinja/Spark-Kafka-Cassandra-Streaming-Pipeline/assets/132110499/16c04b30-1112-4245-acee-3084d0a734f1">
+```mermaid
+flowchart LR
+    API["randomuser.me API"] -->|HTTP GET| P["Python producer"]
+    P -->|JSON events| K["Kafka broker<br/>topic: users"]
+    Z["Zookeeper"] --- K
+    K -->|subscribe| S["Spark Structured Streaming<br/>master + worker"]
+    S -->|writeStream| C[("Cassandra<br/>spark_streams.created_users")]
+    A["Airflow DAG"] -.->|runs| P
+    A -.->|spark-submit| S
+```
 
 ## Introduction
 
@@ -16,17 +25,13 @@ This repository leverages [Docker Compose](https://docs.docker.com/compose/) to 
 
 ## Quick Start
 
-1. Clone the repository and start the demo:
+1. Clone the repository:
     ```
-    https://github.com/Mouhamed-Jinja/Spark-Kafka-Cassandra-Streaming-Pipeline.git
+    git clone https://github.com/itzzshut/spark-kafka-cassandra-pipeline.git
+    cd spark-kafka-cassandra-pipeline
     ```
 
-2. Build the Airflow image, which is extended to run Spark jobs. The official Airflow-Spark image from the documentation is used. For more information, refer to the provided repository
-- link:
-  ```
-  https://github.com/Mouhamed-Jinja/Airflow-spark-Postgres-integration.git
-  ```
-- Build command
+2. Build the Airflow image, which extends the official Airflow image with Java and the Spark provider so it can run Spark jobs (see the `Dockerfile`):
   ```
   docker build -t airspark:4.0 .
   ```
@@ -36,27 +41,26 @@ This repository leverages [Docker Compose](https://docs.docker.com/compose/) to 
   docker-compose up -d
   ```
 
-4. Install the Cassandra driver inside Spark nodes using pip. Alternatively, you can extend the Spark Bitnami image to include the Cassandra driver.
+4. Install the Cassandra driver inside the Spark master. Alternatively, you can extend the Spark Bitnami image to include the Cassandra driver.
   ```
-  pip intsll cassandra-driver
+  docker exec -it spark-master pip install cassandra-driver
   ```
 
-5. Install the Kafka API on your machine to enable the use of KafkaProducer and Consumer.
+5. Install the Kafka client on your machine to enable the use of KafkaProducer.
   ```
-  pip install kafka-python
+  pip install kafka-python requests
   ```
 
 6. Finally, create the Kafka topic:
   ```
-  docker exec -it broker
-  kafka-topics --create --topic users --partitions 3 --replication-factor 1 --bootstrap-server localhost:9092
+  docker exec -it broker kafka-topics --create --topic users --partitions 3 --replication-factor 1 --bootstrap-server localhost:9092
   ```
 
 ## Running the Application
 
 After completing the setup steps, you are ready to start streaming.
 
-1. Open the Airflow webserver UI and run the DAG.
+1. Open the Airflow webserver UI and run the DAG `dag_for_spark_kafka_cassandra_streaming`.
   ```
   http://localhost:8080/login/
   ```
@@ -64,16 +68,16 @@ After completing the setup steps, you are ready to start streaming.
   -password: airflow
 
 2. Alternatively, you can use the command line to run the application.
-  - Run the Producer:
-  ```
-  cd app
-  python kafka_streaming_producer.py
-  ```
-  - use spark-submit to run the spark Job
+  - Use spark-submit to run the Spark job:
   ```
   docker exec -it spark-master bash
   cd app
-  spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.0,com.datastax.spark:spark-cassandra-connector_2.12:3.4.0 spark.py
+  spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,com.datastax.spark:spark-cassandra-connector_2.12:3.4.1 spark_streaming_consumer.py
+  ```
+  - In another terminal, run the producer (it streams for 2 minutes):
+  ```
+  cd app
+  python kafka_streaming_producer.py
   ```
 
 ## Using "cqlsh" Cassandra Query Language Shell
@@ -90,7 +94,7 @@ You can use cqlsh to execute your SQL batch scripts on the data loaded into Cass
    ```
 - start writing your queries, for example show the data
    ```
-    SELECT * FROM created_users ;
+    SELECT * FROM spark_streams.created_users ;
    ```
 
 ## Maintainer
@@ -101,4 +105,4 @@ This project is maintained by Mariam Malik, a Software Engineer and Full-Stack D
 - LinkedIn: [Mariam Malik](https://www.linkedin.com/in/mariam-malik-308698259/)
 - Email: [mariammalik5100@gmail.com](mailto:mariammalik5100@gmail.com)
 
-The original project was created by [Mouhamed-Jinja](https://github.com/Mouhamed-Jinja).
+Based on an open-source template by [Mouhamed-Jinja](https://github.com/Mouhamed-Jinja); extended and fixed by Mariam Malik.

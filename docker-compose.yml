@@ -129,7 +129,7 @@ services:
       retries: 5
 
   spark-master:
-    image: bitnami/spark:latest
+    image: bitnami/spark:3.4.1
     container_name: spark-master
     command: bin/spark-class org.apache.spark.deploy.master.Master
     ports:
@@ -142,7 +142,7 @@ services:
       - ./app:/opt/bitnami/spark/app
 
   spark-worker:
-    image: bitnami/spark:latest
+    image: bitnami/spark:3.4.1
     container_name: spark-woker
     command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     depends_on:
@@ -159,7 +159,7 @@ services:
       - ./app:/opt/bitnami/spark/app
       
   cassandra_db:
-    image: cassandra:latest
+    image: cassandra:4.1
     container_name: cassandra
     hostname: cassandra
     ports:

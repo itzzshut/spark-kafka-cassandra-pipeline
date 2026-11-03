@@ -43,7 +43,7 @@ def streaming_data():
     bootstrap_server_name = ['broker:29092'] #produce to this host
     producer = KafkaProducer(bootstrap_servers =bootstrap_server_name , max_block_ms = 5000)
     while True:
-            if time.time() > curr_time + 120: #1 minute
+            if time.time() > curr_time + 120: #2 minutes
                 break
             try:
                 reponse = get_data()
@@ -52,23 +52,25 @@ def streaming_data():
                 #print(res_json)
                 print("Producing...")
                 producer.send(topic=topic_name, value= json.dumps(reponse).encode('utf-8'))
-                
+                time.sleep(1) # stay polite to the public API
+
             except Exception as e:
                 logging.error(f'An error occured: {e}')
                 continue
+    producer.flush()
 
 
 default_args = {
-    'owner': 'younies',
+    'owner': 'mariam',
     'retries': 5,
     'retry_delay': timedelta(seconds=60),
     'start_date': datetime(2023, 11, 9),
-    'schedule_interval': '0 0 * * *',  # Run daily at midnight
 }
 
 with DAG(
-    'dag_for_spark_kafka_cassandra_streaming14',
+    'dag_for_spark_kafka_cassandra_streaming',
     default_args=default_args,
+    schedule='0 0 * * *',  # Run daily at midnight
     catchup=False,
 ) as dag:
 
@@ -76,12 +78,13 @@ with DAG(
         task_id='kafka_streaming',
         python_callable=streaming_data
     )
-    
+
     spark_stream_to_cassandra= BashOperator(
         task_id = "spark_streaming",
-        bash_command = 'spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.0,com.datastax.spark:spark-cassandra-connector_2.12:3.4.0 /opt/airflow/spark/app/spark.py'
+        bash_command = 'spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,com.datastax.spark:spark-cassandra-connector_2.12:3.4.1 /opt/airflow/spark/app/spark_streaming_consumer.py'
     )
-    
 
-stream_from_API_to_kafka
-spark_stream_to_cassandra
+    # The two tasks run in parallel on purpose: the Spark job never finishes, so it
+    # cannot be upstream of the producer. Spark reads the topic from the earliest
+    # offset, so messages produced before it starts are not lost.
+    [stream_from_API_to_kafka, spark_stream_to_cassandra]

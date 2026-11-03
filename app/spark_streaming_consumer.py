@@ -26,6 +26,7 @@ def create_table(session):
         post_code TEXT,
         email TEXT,
         username TEXT,
+        dob TEXT,
         registered_date TEXT,
         phone TEXT,
         picture TEXT);
@@ -42,8 +43,8 @@ def create_spark_connection():
     try:
         s_conn = SparkSession.builder \
             .appName('SparkDataStreaming') \
-            .config('spark.jars.packages', "com.datastax.spark:spark-cassandra-connector_2.13:3.4.1,"
-                                           "org.apache.spark:spark-sql-kafka-0-10_2.13:3.4.1") \
+            .config('spark.jars.packages', "com.datastax.spark:spark-cassandra-connector_2.12:3.4.1,"
+                                           "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1") \
             .config('spark.cassandra.connection.host', 'cassandra') \
             .getOrCreate()
 
@@ -64,6 +65,7 @@ def connect_to_kafka(spark_conn):
     df = spark_conn.readStream.format("kafka") \
         .option("kafka.bootstrap.servers", kafka_brokers) \
         .option("subscribe", kafka_topic) \
+        .option("startingOffsets", "earliest") \
         .load()
     return df
 
@@ -91,6 +93,7 @@ def create_selection_df_from_kafka(spark_df):
         StructField("post_code", StringType(), False),
         StructField("email", StringType(), False),
         StructField("username", StringType(), False),
+        StructField("dob", StringType(), False),
         StructField("registered_date", StringType(), False),
         StructField("phone", StringType(), False),
         StructField("picture", StringType(), False)

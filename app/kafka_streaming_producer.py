@@ -41,7 +41,7 @@ def streaming_data():
     bootstrap_server_name = ["localhost:9092"] #produce to this host
     producer = KafkaProducer(bootstrap_servers =bootstrap_server_name , max_block_ms = 5000)
     while True:
-            if time.time() > curr_time + 120: #1 minute
+            if time.time() > curr_time + 120: #2 minutes
                 break
             try:
                 reponse = get_data()
@@ -50,8 +50,13 @@ def streaming_data():
                 #print(res_json)
                 print("Producing...")
                 producer.send(topic=topic_name, value= json.dumps(reponse).encode('utf-8'))
-                
+                time.sleep(1) # stay polite to the public API
+
             except Exception as e:
                 logging.error(f'An error occured: {e}')
                 continue
-streaming_data()
+    producer.flush()
+
+
+if __name__ == "__main__":
+    streaming_data()
